@@ -1,0 +1,28 @@
+﻿<Properties StartupConfiguration="{C00C7DE9-6F1D-4A2B-A2E0-75898AB12B69}|Default">
+  <MonoDevelop.Ide.ItemProperties.TcpC2Bridge FirstBuild="True" PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.ItemProperties.C2Bridge PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="TCPC2Bridge/IC2Bridge.cs">
+    <Files>
+      <File FileName="TCPC2Bridge/Program.cs" Line="24" Column="28" />
+      <File FileName="TCPC2Bridge/TCPC2Bridge.cs" />
+      <File FileName="TCPC2Bridge/BridgeConnector.cs" />
+      <File FileName="TCPC2Bridge/Utilities.cs" />
+      <File FileName="TCPC2Bridge/IC2Bridge.cs" Line="25" Column="69" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="TcpC2Bridge" expanded="True" selected="True">
+            <Node name="C2Bridge" expanded="True" />
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>

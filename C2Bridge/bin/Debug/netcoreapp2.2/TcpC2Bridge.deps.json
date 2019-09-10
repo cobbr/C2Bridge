@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v2.2",
+    "signature": "3523da62073228d7d7654cda3f7f7a50fb1e17f1"
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v2.2": {
+      "TcpC2Bridge/1.0.0": {
+        "dependencies": {
+          "YamlDotNet": "6.1.2"
+        },
+        "runtime": {
+          "TcpC2Bridge.dll": {}
+        }
+      },
+      "YamlDotNet/6.1.2": {
+        "runtime": {
+          "lib/netstandard1.3/YamlDotNet.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.1.2.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "TcpC2Bridge/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "YamlDotNet/6.1.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ADQQokM9Zq0Ad+GOFeOzeR2rW+DrZNGQEVLrf10hI+xoxjYhPK01j/KgNZ/APngalhiroVzsohuZGfWiewRvaQ==",
+      "path": "yamldotnet/6.1.2",
+      "hashPath": "yamldotnet.6.1.2.nupkg.sha512"
+    }
+  }
+}
