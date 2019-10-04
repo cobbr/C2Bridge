@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -10,84 +9,71 @@ namespace C2Bridge
 {
     public class TcpC2Bridge : C2Bridge
     {
+        // The External port for the TcpListener
         private int ExternalPort { get; }
+        // A list of connected TcpClients, retrieved by their GUID value
         private readonly ConcurrentDictionary<string, TcpClient> Clients = new ConcurrentDictionary<string, TcpClient>();
 
+        // The TcpC2Bridge constructor requires the ExternalPort to be specified in the string[] args.
         public TcpC2Bridge(BridgeConnector connector, BridgeProfile profile, string[] args) : base(connector, profile)
         {
             if (args.Length != 1 || !int.TryParse(args[0], out int ExternalPort))
             {
-                Console.Error.Write("Usage: TCPC2Bridge <bridge_connector_args> <external_tcp_port>");
+                Console.Error.WriteLine("Usage: TCPC2Bridge <bridge_connector_args> <external_tcp_port>");
                 Environment.Exit(1); return;
             }
             this.ExternalPort = ExternalPort;
         }
 
-        public override async Task RunAsync(CancellationToken token)
+        // RunAsync starts the TcpListener and continually waits for new clients
+        public override async Task RunAsync(CancellationToken Token)
         {
-            this.BridgeConnector.OnReadBridge += (sender, e) =>
-            {
-                ProfileData parsed = this.BridgeProfile.ParseRead(e.Read);
-                if (parsed != null)
-                {
-                    TcpClient client = Clients[parsed.Guid];
-                    _ = this.Write(client.GetStream(), e.Read);
-                }
-            };
+            // Start the TcpListener
             TcpListener Listener = new TcpListener(IPAddress.Any, this.ExternalPort);
             Listener.Start();
 
-            while (!token.IsCancellationRequested)
+            // Continually wait for new client
+            while (!Token.IsCancellationRequested)
             {
+                // Handle the client asynchronously in a new thread
                 TcpClient client = await Listener.AcceptTcpClientAsync();
-                client.ReceiveTimeout = client.SendTimeout = 0;
-                _ = ReadClientAsync(client, token);
-            }
-        }
-
-        protected override async Task<string> Read(dynamic readobj)
-        {
-            return await Utilities.ReadStreamAsync((Stream)readobj);
-        }
-
-        protected override async Task Write(dynamic readobj, string data)
-        {
-            await Utilities.WriteStreamAsync((Stream)readobj, data);
-        }
-
-        private async Task ReadClientAsync(TcpClient client, CancellationToken token)
-        {
-            NetworkStream stream = client.GetStream();
-            stream.ReadTimeout = stream.WriteTimeout = Timeout.Infinite;
-            string guid = null;
-            while (!token.IsCancellationRequested)
-            {
-                try
+                _ = Task.Run(async () =>
                 {
-                    string data = await this.Read(stream);
-                    ProfileData parsed = this.BridgeProfile.ParseWrite(data);
-                    if (parsed != null)
+                    client.ReceiveTimeout = client.SendTimeout = 0;
+                    NetworkStream stream = client.GetStream();
+                    stream.ReadTimeout = stream.WriteTimeout = Timeout.Infinite;
+                    while (!Token.IsCancellationRequested)
                     {
-                        if (guid == null)
+                        // Read from the implant
+                        string read = await Utilities.ReadStreamAsync(stream);
+                        // Write to the Covenant server
+                        string guid = this.WriteToConnector(read);
+                        if (guid != null)
                         {
-                            guid = parsed.Guid;
-                            if (!Clients.ContainsKey(parsed.Guid))
-                            {
-                                Clients.TryAdd(parsed.Guid, client);
-                            }
+                            // Track this GUID -> client mapping, for use within the OnReadBridge function
+                            Clients.TryAdd(guid, client);
                         }
-                        string bridgeData = this.BridgeProfile.FormatRead(new ProfileData { Guid = parsed.Guid, Data = parsed.Data });
-                        _ = this.BridgeConnector.Write(bridgeData);
                     }
-                }
-                catch
-                {
-                    Clients.TryRemove(guid, out client);
-                    client.Dispose();
-                }
+                });
             }
         }
 
+        // OnReadBridge handles writing data to the implant from the Covenant server and gets called
+        // each time data is read from the Covenant server
+        protected override void OnReadBridge(object sender, BridgeConnector.ReadBridgeArgs args)
+        {
+            // Parse the data from the server to determine which implant this data is for
+            var parsed = this.BridgeProfile.ParseRead(args.Read);
+            if (parsed != null)
+            {
+                // Retrieve the corresponding TcpClient based upon the parsed GUID
+                TcpClient client = this.Clients[parsed.Guid];
+                // Write the data down to the correct implant TcpClient
+                _ = Utilities.WriteStreamAsync(client.GetStream(), args.Read);
+            }
+        }
+
+        // Returns the code that should be used in the BridgeProfile.BridgeMessengerCode property
         protected override string GetBridgeMessengerCode()
         {
             return this.BridgeMessengerCode;
