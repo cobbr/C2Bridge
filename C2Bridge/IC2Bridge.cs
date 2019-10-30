@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 
 namespace C2Bridge
@@ -17,7 +16,7 @@ namespace C2Bridge
     /// </summary>
     public abstract class C2Bridge : IC2Bridge
     {
-        // The BridgeConnector handle communication between the Covenant server and the C2Bridge
+        // The BridgeConnector handles communication between the Covenant server and the C2Bridge
         protected BridgeConnector BridgeConnector { get; set; }
         // The BridgeProfile handles parsing and formatting data passed between the implant and Covenant
         protected BridgeProfile BridgeProfile { get; set; }
