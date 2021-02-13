@@ -51,7 +51,10 @@ namespace C2Bridge
                         if (guid != null)
                         {
                             // Track this GUID -> client mapping, for use within the OnReadBridge function
-                            Clients.TryAdd(guid, client);
+                            if (!Clients.TryAdd(guid, client))
+                            {
+                                Clients[guid] = client;
+                            }
                         }
                     }
                 });
@@ -80,29 +83,44 @@ namespace C2Bridge
         }
 
         private string BridgeMessengerCode { get; } =
-@"public interface IMessenger
+@"public enum MessageType
+{
+    Read,
+    Write
+}
+public class ProfileMessage
+{
+    public MessageType Type { get; set; }
+    public string Message { get; set; }
+}
+    
+public class MessageEventArgs : EventArgs
+{
+    public string Message { get; set; }
+}
+public interface IMessenger
 {
     string Hostname { get; }
     string Identifier { get; set; }
     string Authenticator { get; set; }
-    string Read();
+    EventHandler<MessageEventArgs> UpstreamEventHandler { get; set; }
+    ProfileMessage Read();
     void Write(string Message);
     void Close();
 }
-
 public class BridgeMessenger : IMessenger
 {
-    public string Hostname { get; } = """";
+    public string Hostname { get; } = "";
     private int Port { get; }
-    public string Identifier { get; set; } = """";
-    public string Authenticator { get; set; } = """";
-
+    public string Identifier { get; set; } = "";
+    public string Authenticator { get; set; } = "";
+    public EventHandler<MessageEventArgs> UpstreamEventHandler { get; set; }
+    
     private string CovenantURI { get; }
     private object _tcpLock = new object();
     private string WriteFormat { get; set; }
     public TcpClient client { get; set; }
     public Stream stream { get; set; }
-
     public BridgeMessenger(string CovenantURI, string Identifier, string WriteFormat)
     {
         this.CovenantURI = CovenantURI;
@@ -111,8 +129,7 @@ public class BridgeMessenger : IMessenger
         this.Port = int.Parse(CovenantURI.Split(':')[1]);
         this.WriteFormat = WriteFormat;
     }
-
-    public string Read()
+    public ProfileMessage Read()
     {
         byte[] read = this.ReadBytes();
         if (read == null)
@@ -120,11 +137,10 @@ public class BridgeMessenger : IMessenger
             Thread.Sleep(5000);
             this.Close();
             this.Connect();
-            return """";
+            return new ProfileMessage { Type = MessageType.Read, Message = "" };
         }
-        return Encoding.UTF8.GetString(read);
+        return new ProfileMessage { Type = MessageType.Read, Message = Encoding.UTF8.GetString(read) };
     }
-
     public void Write(string Message)
     {
         try
@@ -142,13 +158,11 @@ public class BridgeMessenger : IMessenger
             this.Connect();
         }
     }
-
     public void Close()
     {
         this.stream.Close();
         this.client.Close();
     }
-
     public void Connect()
     {
         try
@@ -160,12 +174,11 @@ public class BridgeMessenger : IMessenger
             this.stream = client.GetStream();
             this.stream.ReadTimeout = -1;
             this.stream.WriteTimeout = -1;
-            this.Write(String.Format(this.WriteFormat, """", this.Identifier));
+            this.Write(String.Format(this.WriteFormat, "", this.Identifier));
             Thread.Sleep(1000);
         }
         catch { }
     }
-
     private void WriteBytes(byte[] bytes)
     {
         byte[] size = new byte[4];
@@ -182,7 +195,6 @@ public class BridgeMessenger : IMessenger
             writtenBytes += bytesToWrite;
         }
     }
-
     private byte[] ReadBytes()
     {
         byte[] size = new byte[4];
@@ -195,7 +207,6 @@ public class BridgeMessenger : IMessenger
             totalReadBytes += readBytes;
         } while (totalReadBytes < size.Length);
         int len = (size[0] << 24) + (size[1] << 16) + (size[2] << 8) + size[3];
-
         byte[] buffer = new byte[1024];
         using (var ms = new MemoryStream())
         {
